@@ -1,17 +1,18 @@
 package com.mhz.enjoyretrofit.retrofit;
 
-import com.mhz.enjoyretrofit.api.EnjoyWeatherApi;
-
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import okhttp3.HttpUrl;
 
 public class EnjoyRetrofit {
 
     HttpUrl baseUrl;
-
+    // 线程安全的, 用分段锁来实现的
+    final Map<Method, ServiceMethod> serviceMethodCache = new ConcurrentHashMap<>();
 
     EnjoyRetrofit() {
 
@@ -27,14 +28,15 @@ public class EnjoyRetrofit {
 
         /**
          * newProxyInstance 参数1 , classLoader类型
-         * 参数2, 代理的接口,
+         * 参数2, 代理的接口,   第二个参数就确定了  返回的类型  是个什么类型
          * 3, InvocationHandler
          *
          */
         Object object = Proxy.newProxyInstance(service.getClassLoader(), new Class[]{service}, new InvocationHandler() {
             @Override
             public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-                return null;
+                ServiceMethod serviceMethod = loadServiceMethod(method);
+                return serviceMethod.invoke(args);
 
             }
         });
@@ -43,10 +45,33 @@ public class EnjoyRetrofit {
         return (T) object;
     }
 
+    /**
+     * @param method
+     * @return
+     */
+    private ServiceMethod loadServiceMethod(Method method) {
+        // 这里是一个缓存的 策略,如果 缓存中存在,就直接返回, 不存在再去新生成
+        ServiceMethod result = serviceMethodCache.get(method);
+        if (result != null) {
+            return result;
+        }
+        synchronized (serviceMethodCache) {
+            result = serviceMethodCache.get(method);
+            if (result == null) {
+                result = new ServiceMethod.builder(this, method).build();
+                //
+                serviceMethodCache.put(method, result);
+            }
+        }
+
+        return result;
+    }
+
     public static final class Builder {
 
         public EnjoyRetrofit build() {
-            return new   EnjoyRetrofit();
+
+            return new EnjoyRetrofit();
 
         }
 
