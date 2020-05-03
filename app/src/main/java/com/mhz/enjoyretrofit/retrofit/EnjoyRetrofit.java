@@ -6,15 +6,20 @@ import java.lang.reflect.Proxy;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import okhttp3.Call;
 import okhttp3.HttpUrl;
+import okhttp3.OkHttpClient;
 
 public class EnjoyRetrofit {
 
     HttpUrl baseUrl;
     // 线程安全的, 用分段锁来实现的
     final Map<Method, ServiceMethod> serviceMethodCache = new ConcurrentHashMap<>();
+    Call.Factory factory;
 
-    EnjoyRetrofit() {
+    EnjoyRetrofit(Builder builder) {
+        this.baseUrl = builder.baseUrl;
+        this.factory = builder.callFactory;
 
     }
 
@@ -35,6 +40,7 @@ public class EnjoyRetrofit {
         Object object = Proxy.newProxyInstance(service.getClassLoader(), new Class[]{service}, new InvocationHandler() {
             @Override
             public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+                // ServiceMethod 用来记录请求的类型， 参数等基本信息 的类
                 ServiceMethod serviceMethod = loadServiceMethod(method);
                 return serviceMethod.invoke(args);
 
@@ -58,7 +64,7 @@ public class EnjoyRetrofit {
         synchronized (serviceMethodCache) {
             result = serviceMethodCache.get(method);
             if (result == null) {
-                result = new ServiceMethod.builder(this, method).build();
+                result = new ServiceMethod.Builder(this, method).build();
                 //
                 serviceMethodCache.put(method, result);
             }
@@ -68,17 +74,29 @@ public class EnjoyRetrofit {
     }
 
     public static final class Builder {
+        HttpUrl baseUrl;
+        Call.Factory callFactory;
 
-        public EnjoyRetrofit build() {
-
-            return new EnjoyRetrofit();
-
-        }
 
         public Builder baseUrl(String baseUrl) {
-
+            this.baseUrl = HttpUrl.get(baseUrl);
             return this;
         }
+
+        public Builder callFactory(Call.Factory factory) {
+            this.callFactory = factory;
+            return this;
+        }
+        public EnjoyRetrofit build() {
+            if (callFactory == null) {
+                // 如果call Factory 是空的话，就创建出来一个默认的
+                callFactory = new OkHttpClient();
+            }
+
+            return new EnjoyRetrofit(this);
+
+        }
+
     }
 
 }
