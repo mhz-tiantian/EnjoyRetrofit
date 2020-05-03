@@ -38,6 +38,14 @@ public class EnjoyRetrofit {
          *
          */
         Object object = Proxy.newProxyInstance(service.getClassLoader(), new Class[]{service}, new InvocationHandler() {
+            /**
+             *
+             * @param proxy  代理类 , 代理的真实的对象
+             * @param method 真实对象 调用的方法
+             * @param args  调用方法的参数 信息
+             * @return
+             * @throws Throwable
+             */
             @Override
             public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
                 // ServiceMethod 用来记录请求的类型， 参数等基本信息 的类

@@ -7,6 +7,9 @@ import android.util.Log;
 import android.view.View;
 
 import com.mhz.enjoyretrofit.api.EnjoyWeatherApi;
+import com.mhz.enjoyretrofit.onClick.BindClass;
+import com.mhz.enjoyretrofit.onClick.OnClick;
+import com.mhz.enjoyretrofit.onClick.SecondActivity;
 import com.mhz.enjoyretrofit.retrofit.EnjoyRetrofit;
 
 import java.io.IOException;
@@ -25,6 +28,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        BindClass.init(this);
+
         Retrofit retrofit = new Retrofit.Builder().baseUrl("https://restapi.amap.com").build();
 
         EnjoyRetrofit enjoyRetrofit = new EnjoyRetrofit.Builder().baseUrl("https://restapi.amap.com").build();
@@ -33,6 +38,18 @@ public class MainActivity extends AppCompatActivity {
 
         findViewById(R.id.text_get).setOnClickListener(v -> enjoyGet());
         findViewById(R.id.text_post).setOnClickListener(v -> enjoyPost());
+
+
+
+    }
+
+    @OnClick({R.id.text_goto_second})
+    public void clickView(View view) {
+        switch (view.getId()) {
+            case R.id.text_goto_second:
+                SecondActivity.launchActivity(this);
+                break;
+        }
 
     }
 
